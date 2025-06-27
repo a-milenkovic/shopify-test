@@ -1,0 +1,32 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "7ba86ce7385ed8196401acf3817d861e"
+name = "beeit-test"
+handle = "beeit-test"
+application_url = "https://priced-revised-enjoying-stating.trycloudflare.com"
+embedded = true
+
+[build]
+include_config_on_deploy = true
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2025-04"
+topics = [ "orders/create" ]
+
+  [webhooks.headers]
+  Content-Type = "application/json"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products, write_orders, read_orders"
+
+[auth]
+redirect_urls = [
+  "https://priced-revised-enjoying-stating.trycloudflare.com/auth/callback",
+  "https://priced-revised-enjoying-stating.trycloudflare.com/auth/shopify/callback",
+  "https://priced-revised-enjoying-stating.trycloudflare.com/api/auth/callback"
+]
+
+[pos]
+embedded = false
