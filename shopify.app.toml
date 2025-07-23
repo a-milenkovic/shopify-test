@@ -3,7 +3,7 @@
 client_id = "7ba86ce7385ed8196401acf3817d861e"
 name = "beeit-test"
 handle = "beeit-test"
-application_url = "https://priced-revised-enjoying-stating.trycloudflare.com"
+application_url = "https://bicycle-sur-skills-philips.trycloudflare.com"
 embedded = true
 
 [build]
@@ -22,11 +22,7 @@ topics = [ "orders/create" ]
 scopes = "write_products, write_orders, read_orders"
 
 [auth]
-redirect_urls = [
-  "https://priced-revised-enjoying-stating.trycloudflare.com/auth/callback",
-  "https://priced-revised-enjoying-stating.trycloudflare.com/auth/shopify/callback",
-  "https://priced-revised-enjoying-stating.trycloudflare.com/api/auth/callback"
-]
+redirect_urls = ["https://bicycle-sur-skills-philips.trycloudflare.com/auth/callback", "https://bicycle-sur-skills-philips.trycloudflare.com/auth/shopify/callback", "https://bicycle-sur-skills-philips.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false

@@ -1,9 +1,12 @@
 import "@shopify/shopify-api/adapters/node";
 import { shopifyApi, LATEST_API_VERSION } from "@shopify/shopify-api";
 import express from "express";
+import orderWebhookHandler from "./order-webhook.js";
 
 const app = express();
+
 app.use(express.json());
+app.use(orderWebhookHandler);
 
 // Shopify konfiguracija
 const shopify = shopifyApi({
