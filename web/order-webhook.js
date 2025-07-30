@@ -1,10 +1,15 @@
-const express = require("express");
-const router = express.Router();
-const axios = require("axios");
-const { addToRetryQueue } = require("./retryQueue");
+import express from "express";
+import axios from "axios";
+import { addToRetryQueue } from "./retryQueue.js";
 
-router.post("/api/webhooks/orders-create", async (req, res) => {
+const router = express.Router();
+
+router.post("/api/webhooks/orders/create", async (req, res) => {
   try {
+    console.log("🚀 Webhook order/create pozvan!");
+    console.log("Headers:", req.headers);
+    console.log("Body:", JSON.stringify(req.body, null, 2));
+    
     const order = req.body;
 
     const metafieldValue = "primer-metafield-vrednosti";
@@ -16,7 +21,7 @@ router.post("/api/webhooks/orders-create", async (req, res) => {
     };
 
     const resApi = await axios.post(
-      "https://686277b096f0cc4e34b9d336.mockapi.io/orders/success",
+      "https://6889d1d54c55d5c73953af8c.mockapi.io/api/v1/orders_success",
       payload
     );
 
@@ -34,4 +39,4 @@ router.post("/api/webhooks/orders-create", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

@@ -3,7 +3,7 @@
 client_id = "7ba86ce7385ed8196401acf3817d861e"
 name = "beeit-test"
 handle = "beeit-test"
-application_url = "https://bicycle-sur-skills-philips.trycloudflare.com"
+application_url = "https://born-usc-op-racial.trycloudflare.com"
 embedded = true
 
 [build]
@@ -12,9 +12,12 @@ automatically_update_urls_on_dev = true
 
 [webhooks]
 api_version = "2025-04"
-topics = [ "orders/create" ]
 
-  [webhooks.headers]
+  [[webhooks.subscriptions]]
+  topics = [ "orders/create" ]
+  uri = "/api/webhooks/orders/create"
+  
+  [webhooks.subscriptions.headers]
   Content-Type = "application/json"
 
 [access_scopes]
@@ -22,7 +25,7 @@ topics = [ "orders/create" ]
 scopes = "write_products, write_orders, read_orders"
 
 [auth]
-redirect_urls = ["https://bicycle-sur-skills-philips.trycloudflare.com/auth/callback", "https://bicycle-sur-skills-philips.trycloudflare.com/auth/shopify/callback", "https://bicycle-sur-skills-philips.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://born-usc-op-racial.trycloudflare.com/auth/callback", "https://born-usc-op-racial.trycloudflare.com/auth/shopify/callback", "https://born-usc-op-racial.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false
