@@ -3,7 +3,7 @@
 client_id = "7ba86ce7385ed8196401acf3817d861e"
 name = "beeit-test"
 handle = "beeit-test"
-application_url = "https://born-usc-op-racial.trycloudflare.com"
+application_url = "https://realistic-transcripts-shares-dos.trycloudflare.com"
 embedded = true
 
 [build]
@@ -15,17 +15,21 @@ api_version = "2025-04"
 
   [[webhooks.subscriptions]]
   topics = [ "orders/create" ]
-  uri = "/api/webhooks/orders/create"
-  
-  [webhooks.subscriptions.headers]
-  Content-Type = "application/json"
+  uri = "https://realistic-transcripts-shares-dos.trycloudflare.com/api/webhooks/orders/create"
+
+    [webhooks.subscriptions.headers]
+    Content-Type = "application/json"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_products, write_orders, read_orders"
 
 [auth]
-redirect_urls = ["https://born-usc-op-racial.trycloudflare.com/auth/callback", "https://born-usc-op-racial.trycloudflare.com/auth/shopify/callback", "https://born-usc-op-racial.trycloudflare.com/api/auth/callback"]
+redirect_urls = [
+  "https://realistic-transcripts-shares-dos.trycloudflare.com/auth/callback",
+  "https://realistic-transcripts-shares-dos.trycloudflare.com/auth/shopify/callback",
+  "https://realistic-transcripts-shares-dos.trycloudflare.com/api/auth/callback"
+]
 
 [pos]
 embedded = false

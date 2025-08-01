@@ -17,8 +17,24 @@
       }
     </script>
 
-    <meta name="shopify-api-key" content="%VITE_SHOPIFY_API_KEY%" />
+    <meta name="shopify-api-key" content="7ba86ce7385ed8196401acf3817d861e" />
     <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+    <script>
+      // Debug informacije za App Bridge
+      console.log("🔍 URL trenutne stranice:", window.location.href);
+      console.log("🔍 URL parametri:", new URLSearchParams(window.location.search).toString());
+      console.log("🔍 Document referrer:", document.referrer);
+      
+      // Čekaj da se App Bridge učita
+      window.addEventListener('load', function() {
+        setTimeout(() => {
+          console.log("🔍 Shopify global postoji?", typeof window.shopify !== 'undefined');
+          if (typeof window.shopify !== 'undefined') {
+            console.log("🔍 Shopify object:", window.shopify);
+          }
+        }, 1000);
+      });
+    </script>
   </head>
   <body>
     <div id="app"><!--index.jsx injects App.jsx here--></div>

@@ -17,6 +17,9 @@ const __dirname = dirname(__filename);
 
 const app = express();
 
+// Session storage - u production koristiti bazu
+const sessionStorage = new Map();
+
 app.use(express.json());
 app.use(orderWebhookHandler);
 
@@ -83,8 +86,9 @@ app.get('/auth/callback', async (req, res) => {
     console.log(`✅ OAuth uspešan za shop: ${shop}`);
     console.log(`🔑 Access token sačuvan: ${access_token?.substring(0, 10)}...`);
     
-    // Redirect na frontend aplikaciju
-    res.redirect(`/?shop=${shop}&host=${Buffer.from(`${shop}/admin`).toString('base64')}`);
+    // Redirect na frontend aplikaciju sa potrebnim parametrima
+    const host = Buffer.from(`${shop}/admin`).toString('base64');
+    res.redirect(`/?shop=${shop}&host=${host}&embedded=1`);
   } catch (error) {
     console.error('OAuth greška:', error);
     res.status(500).send('OAuth failed');
@@ -111,9 +115,6 @@ const shopify = shopifyApi({
   apiVersion: LATEST_API_VERSION,
   isEmbeddedApp: true,
 });
-
-// Session storage - u production koristiti bazu
-const sessionStorage = new Map();
 
 // Mock shop za development
 const MOCK_SHOP = "test-shop.myshopify.com";

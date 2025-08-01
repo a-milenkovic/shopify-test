@@ -1,15 +1,18 @@
 {
   "name": "beeit-test",
   "version": "1.0.0",
+  "type": "module",
   "main": "web/index.js",
   "license": "UNLICENSED",
   "scripts": {
     "shopify": "shopify",
     "build": "shopify app build",
     "dev": "shopify app dev",
+    "dev-auto": "node update-webhook-url.js && shopify app dev",
     "info": "shopify app info",
     "generate": "shopify app generate",
-    "deploy": "shopify app deploy"
+    "deploy": "shopify app deploy",
+    "update-urls": "node update-webhook-url.js"
   },
   "dependencies": {},
   "author": "aleksandar",

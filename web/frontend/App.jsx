@@ -1,32 +1,62 @@
 import { useState, useEffect } from "react";
 import { LegacyCard, Page, DataTable, Button, Banner } from "@shopify/polaris";
+import { useAppBridge } from "@shopify/app-bridge-react";
 
 // Mock shop za development
 const MOCK_SHOP = "test-shop.myshopify.com";
+
+function useAppBridgeSafely() {
+  try {
+    return useAppBridge();
+  } catch (error) {
+    console.log("App Bridge nije dostupan:", error.message);
+    return null;
+  }
+}
 
 export default function App() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState({});
-
+  
+  const app = useAppBridgeSafely();
+  
   useEffect(() => {
-    async function fetchOrders() {
+    // Debug informacije
+    const urlParams = new URLSearchParams(window.location.search);
+    console.log("🔍 Shop parameter:", urlParams.get('shop'));
+    console.log("🔍 Host parameter:", urlParams.get('host'));
+    console.log("🔍 Referrer:", document.referrer);
+    console.log("🔍 App Bridge dostupan:", !!app);
+  }, [app]);
+
+  const fetchOrders = async () => {
       try {
-        // Pokušaj da dobiješ shop iz URL parametara
-        const urlParams = new URLSearchParams(window.location.search);
-        let shop = urlParams.get('shop');
+        // Pokušaj da dobiješ shop iz App Bridge-a
+        let shop = null;
         
-        // Ako nema shop parametra, pokušaj da ga dobiješ iz embedded aplikacije
-        if (!shop && window.location.hostname !== 'localhost') {
-          // U embedded mode, hostname sadrži informacije o shop-u
-          const embedded = urlParams.get('embedded') === '1';
-          if (embedded) {
-            // Pokušaj da extractuješ shop iz host parametra ili drugih embedded parametara
+        try {
+          if (app?.config?.shop) {
+            shop = app.config.shop;
+          }
+        } catch (e) {
+          console.log("App Bridge config nije dostupan");
+        }
+        
+        // Fallback: pokušaj da dobiješ shop iz URL parametara
+        if (!shop) {
+          const urlParams = new URLSearchParams(window.location.search);
+          shop = urlParams.get('shop');
+          
+          // Pokušaj da dobiješ iz host parametra
+          if (!shop) {
             const host = urlParams.get('host');
             if (host) {
               try {
                 const decodedHost = atob(host).split('/')[0];
-                shop = decodedHost;
+                if (decodedHost.includes('.myshopify.com')) {
+                  shop = decodedHost;
+                }
               } catch (e) {
                 console.log("Nije moguće dekodovati host parametar");
               }
@@ -34,10 +64,22 @@ export default function App() {
           }
         }
         
-        shop = shop || MOCK_SHOP;
-        console.log("Koristi shop:", shop);
+        console.log("🏪 App Bridge shop:", app?.config?.shop);
+        console.log("🏪 Detected shop:", shop);
+        console.log("🏪 Koristi shop:", shop || "mock shop");
         
-        const response = await fetch(`/api/orders?shop=${shop}`);
+        // Pozovi API sa shop parametrom
+        const apiUrl = shop ? `/api/orders?shop=${shop}` : '/api/orders';
+        const response = await fetch(apiUrl, {
+          headers: {
+            'X-Shopify-Shop-Domain': shop || MOCK_SHOP
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API request failed: ${response.status}`);
+        }
+        
         const data = await response.json();
         setOrders(data.orders || []);
         setLoading(false);
@@ -45,8 +87,14 @@ export default function App() {
         console.error("Greška pri učitavanju ordersa:", error);
         setLoading(false);
       }
-    }
+    };
+
+  useEffect(() => {
     fetchOrders();
+    
+    // Osvežava ordere svakih 30 sekundi
+    const interval = setInterval(fetchOrders, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const sendOrderToAPI = async (order, testFail = false) => {
@@ -93,6 +141,9 @@ export default function App() {
           order.id === orderId ? { ...order, sync_status: "failed" } : order
         ));
       }
+      
+      // Osvežava ordere nakon slanja
+      setTimeout(fetchOrders, 1000);
     } catch (error) {
       setSyncStatus(prev => ({ ...prev, [orderId]: "failed" }));
       setOrders(prev => prev.map(order => 
@@ -131,9 +182,19 @@ export default function App() {
   });
 
   return (
-    <Page title="Sinhronizacija porudžbina">
+    <Page 
+      title="Sinhronizacija porudžbina"
+      primaryAction={{
+        content: 'Osveži',
+        onAction: () => {
+          setLoading(true);
+          fetchOrders();
+        }
+      }}
+    >
       <Banner status="info">
         <p><strong>Automatski retry mehanizam:</strong> Neuspešno poslate porudžbine se automatski pokušavaju poslati ponovo svakih 30 sekundi, maksimalno 3 puta. Koristite "Test Fail" dugme da testirate retry funkcionalnost.</p>
+        <p><strong>Automatsko osvežavanje:</strong> Lista se osvežava svakih 30 sekundi ili kliknite "Osveži" za manuelno osvežavanje.</p>
       </Banner>
       
       <LegacyCard>
