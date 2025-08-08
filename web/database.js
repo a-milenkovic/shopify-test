@@ -8,7 +8,7 @@ const __dirname = dirname(__filename);
 const dbPath = join(__dirname, 'orders.db');
 const db = new sqlite3.Database(dbPath);
 
-// Kreiranje tabele ako ne postoji
+// Kreiranje tabela ako ne postoje
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS order_sync (
     order_id TEXT PRIMARY KEY,
@@ -16,6 +16,14 @@ db.serialize(() => {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_attempt DATETIME,
     attempts INTEGER DEFAULT 0
+  )`);
+  
+  db.run(`CREATE TABLE IF NOT EXISTS sessions (
+    shop TEXT PRIMARY KEY,
+    access_token TEXT NOT NULL,
+    scope TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 });
 
@@ -50,6 +58,47 @@ export const getAllOrderStatuses = () => {
   return new Promise((resolve, reject) => {
     db.all(
       `SELECT * FROM order_sync ORDER BY created_at DESC`,
+      [],
+      (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      }
+    );
+  });
+};
+
+// Session management functions
+export const saveSession = (shop, accessToken, scope) => {
+  return new Promise((resolve, reject) => {
+    db.run(
+      `INSERT OR REPLACE INTO sessions (shop, access_token, scope, updated_at) 
+       VALUES (?, ?, ?, CURRENT_TIMESTAMP)`,
+      [shop, accessToken, scope],
+      function(err) {
+        if (err) reject(err);
+        else resolve(this.changes);
+      }
+    );
+  });
+};
+
+export const getSession = (shop) => {
+  return new Promise((resolve, reject) => {
+    db.get(
+      `SELECT * FROM sessions WHERE shop = ?`,
+      [shop],
+      (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      }
+    );
+  });
+};
+
+export const getAllSessions = () => {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT shop, scope, created_at, updated_at FROM sessions`,
       [],
       (err, rows) => {
         if (err) reject(err);

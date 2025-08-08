@@ -2,7 +2,7 @@ import "@shopify/shopify-api/adapters/node";
 import { shopifyApi, LATEST_API_VERSION } from "@shopify/shopify-api";
 import express from "express";
 import orderWebhookHandler from "./order-webhook.js";
-import { updateOrderStatus, getOrderStatus, getAllOrderStatuses } from "./database.js";
+import { updateOrderStatus, getOrderStatus, getAllOrderStatuses, saveSession, getSession, getAllSessions } from "./database.js";
 import { addToRetryQueue } from "./retryQueue.js";
 import dotenv from "dotenv";
 import { join, dirname } from "path";
@@ -17,34 +17,25 @@ const __dirname = dirname(__filename);
 
 const app = express();
 
-// Session storage - u production koristiti bazu
-const sessionStorage = new Map();
-
 app.use(express.json());
 app.use(orderWebhookHandler);
 
-// Serviranje static fajlova iz frontend direktorijuma
-app.use(serveStatic(join(__dirname, 'frontend')));
-
-// Serviranje frontend aplikacije na root
-app.get('/', (req, res) => {
-  try {
-    const htmlPath = join(__dirname, 'frontend', 'index.html');
-    let html = readFileSync(htmlPath, 'utf8');
-    // Zameni placeholder sa pravim API key
-    html = html.replace('%VITE_SHOPIFY_API_KEY%', process.env.SHOPIFY_API_KEY || '');
-    res.send(html);
-  } catch (error) {
-    res.status(500).json({ error: 'Frontend loading failed' });
-  }
-});
-
-// OAuth začetek - redirect na Shopify authorization
-app.get('/auth', (req, res) => {
+// FIRST define all API routes BEFORE static middleware
+// OAuth start - redirect to Shopify authorization
+app.get('/auth', async (req, res) => {
   const shop = req.query.shop;
   if (!shop) {
     return res.status(400).send('Missing shop parameter');
   }
+  
+  
+  // Check if we already have REAL session (not dummy)
+  const existingSession = await getSession(shop);
+  if (existingSession && !existingSession.access_token.includes('dummy')) {
+    const host = Buffer.from(`${shop}/admin`).toString('base64');
+    return res.redirect(`/?shop=${shop}&host=${host}&embedded=1`);
+  }
+  
   
   const authRoute = `/admin/oauth/authorize?client_id=${process.env.SHOPIFY_API_KEY}&scope=read_orders,write_orders,read_metafields,write_metafields&redirect_uri=${process.env.HOST}/auth/callback&state=nonce`;
   const shopifyURL = `https://${shop}${authRoute}`;
@@ -52,16 +43,17 @@ app.get('/auth', (req, res) => {
   res.redirect(shopifyURL);
 });
 
-// OAuth callback - prima authorization code i generiše access token
+// OAuth callback - receives authorization code and generates access token
 app.get('/auth/callback', async (req, res) => {
   const { shop, code, state } = req.query;
+  
   
   if (!shop || !code) {
     return res.status(400).send('Missing shop or code parameter');
   }
   
   try {
-    // Razmeni code za access token
+    // Exchange code for access token
     const accessTokenResponse = await fetch(`https://${shop}/admin/oauth/access_token`, {
       method: 'POST',
       headers: {
@@ -76,17 +68,11 @@ app.get('/auth/callback', async (req, res) => {
     
     const { access_token } = await accessTokenResponse.json();
     
-    // Sačuvaj access token
-    sessionStorage.set(shop, {
-      shop: shop,
-      accessToken: access_token,
-      scope: 'read_orders,write_orders,read_metafields,write_metafields'
-    });
+    // Save access token to database
+    await saveSession(shop, access_token, 'read_orders,write_orders,read_metafields,write_metafields');
     
-    console.log(`✅ OAuth uspešan za shop: ${shop}`);
-    console.log(`🔑 Access token sačuvan: ${access_token?.substring(0, 10)}...`);
     
-    // Redirect na frontend aplikaciju sa potrebnim parametrima
+    // Redirect to frontend application with required parameters
     const host = Buffer.from(`${shop}/admin`).toString('base64');
     res.redirect(`/?shop=${shop}&host=${host}&embedded=1`);
   } catch (error) {
@@ -95,18 +81,33 @@ app.get('/auth/callback', async (req, res) => {
   }
 });
 
-// Debug endpoint - mora biti posle auth!
-app.get('/debug', (req, res) => {
+// Debug endpoint
+app.get('/debug', async (req, res) => {
   res.json({ 
     message: "Backend radi!", 
     timestamp: new Date().toISOString(),
     port: process.env.PORT || 3000,
     env: process.env.NODE_ENV,
-    sessions: Array.from(sessionStorage.keys())
+    sessions: (await getAllSessions()).map(s => s.shop),
+    sessionDetails: await getAllSessions()
   });
 });
 
-// Shopify konfiguracija
+// Automatically create session on server startup
+(async () => {
+  try {
+    const shop = 'beetest123.myshopify.com';
+    const existingSession = await getSession(shop);
+    if (!existingSession) {
+      const accessToken = 'shpat_dummy_token_for_mock_orders_testing_12345';
+      await saveSession(shop, accessToken, 'read_orders,write_orders,read_metafields,write_metafields');
+    } else {
+    }
+  } catch (error) {
+  }
+})();
+
+// Shopify configuration
 const shopify = shopifyApi({
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET,
@@ -116,19 +117,18 @@ const shopify = shopifyApi({
   isEmbeddedApp: true,
 });
 
-// Mock shop za development
+// Mock shop for development
 const MOCK_SHOP = "test-shop.myshopify.com";
 
 // Mock API endpoints
 const MOCK_API_SUCCESS_URL = "https://6889d1d54c55d5c73953af8c.mockapi.io/api/v1/orders_success";
 const MOCK_API_FAIL_URL = "https://6889d1d54c55d5c73953af8c.mockapi.io/api/v1/orders_fail";
 
-// Funkcija za slanje porudžbine na eksterni API
+// Function for sending order to external API
 async function sendOrderToAPI(orderData, useFailEndpoint = false) {
   try {
     const url = useFailEndpoint ? MOCK_API_FAIL_URL : MOCK_API_SUCCESS_URL;
     
-    console.log(`Slanje order ${orderData.id} na ${useFailEndpoint ? 'FAIL' : 'SUCCESS'} endpoint`);
     
     const response = await fetch(url, {
       method: "POST",
@@ -141,40 +141,52 @@ async function sendOrderToAPI(orderData, useFailEndpoint = false) {
     const success = response.ok;
     
     if (success) {
-      console.log(`Order ${orderData.id} uspešno poslat`);
       await updateOrderStatus(orderData.id, 'sent');
     } else {
-      console.log(`Slanje order ${orderData.id} neuspešno, dodajem u retry queue`);
       await updateOrderStatus(orderData.id, 'failed');
-      // Dodaj u retry queue za automatski ponovni pokušaj
+      // Add to retry queue for automatic retry
       addToRetryQueue(orderData);
     }
     
     return success;
   } catch (error) {
-    console.error("Greška pri slanju porudžbine:", error);
     await updateOrderStatus(orderData.id, 'failed');
-    // Dodaj u retry queue za automatski ponovni pokušaj
+    // Add to retry queue for automatic retry
     addToRetryQueue(orderData);
     return false;
   }
 }
 
-// Ruta za dobijanje liste porudžbina
+// Route for getting list of orders
 app.get("/api/orders", async (req, res) => {
   try {
     const shop = req.query.shop || req.headers['x-shopify-shop-domain'];
-    console.log("API /orders pozvan sa shop:", shop);
-    console.log("Query params:", req.query);
-    console.log("Headers:", req.headers['x-shopify-shop-domain']);
     
-    // Proverava da li imamo session za ovaj shop
-    const session = sessionStorage.get(shop);
-    console.log("Session za shop:", session ? "✅ postoji" : "❌ ne postoji");
+    // Check if we have session for this shop in database
+    const sessionData = await getSession(shop);
+    const session = sessionData ? {
+      shop: sessionData.shop,
+      accessToken: sessionData.access_token,
+      scope: sessionData.scope
+    } : null;
     
-    if (!shop || shop === MOCK_SHOP || !session) {
-      console.log("Koristi mock ordere jer nema validnog shop parametra ili session-a");
-      // Ako nema shop parametra, vrati mock ordere za development
+    // Get all orders from database (webhook orders)
+    const syncStatuses = await getAllOrderStatuses();
+    
+    if (!shop || shop === MOCK_SHOP || !session || session.accessToken.includes('dummy')) {
+      
+      // Create orders from database (webhook orders)
+      const databaseOrders = syncStatuses.map(status => ({
+        id: parseInt(status.order_id),
+        name: `#ORDER-${status.order_id.toString().slice(-4)}`, // Last 4 digits
+        email: "webhook@order.com", // Placeholder email
+        created_at: status.created_at,
+        total_price: "0.00", // Placeholder price
+        metafield: "Webhook order",
+        sync_status: status.status
+      }));
+
+      // Mock orders for testing
       const mockOrders = [
         {
           id: 12345,
@@ -182,7 +194,7 @@ app.get("/api/orders", async (req, res) => {
           email: "test@example.com",
           created_at: "2025-01-28T10:00:00Z",
           total_price: "29.99",
-          metafield: "Prioritetna dostava",
+          metafield: "Priority delivery",
           sync_status: "pending"
         },
         {
@@ -191,41 +203,22 @@ app.get("/api/orders", async (req, res) => {
           email: "test2@example.com",
           created_at: "2025-01-28T11:00:00Z",
           total_price: "49.99",
-          metafield: "Poklon pakovanje",
+          metafield: "Gift wrapping",
           sync_status: "sent"
-        },
-        {
-          id: 12347,
-          name: "1003", 
-          email: "failed@example.com",
-          created_at: "2025-01-28T12:00:00Z",
-          total_price: "19.99",
-          metafield: "Specijalne instrukcije",
-          sync_status: "failed"
         }
       ];
 
-      // Dobij sync statuse iz baze
-      const syncStatuses = await getAllOrderStatuses();
-      const statusMap = {};
-      syncStatuses.forEach(status => {
-        statusMap[status.order_id] = status;
-      });
+      // Combine database orders and mock orders
+      const allOrders = [...databaseOrders, ...mockOrders];
 
-      const ordersWithStatus = mockOrders.map(order => ({
-        ...order,
-        sync_status: statusMap[order.id]?.status || order.sync_status || 'pending'
-      }));
-
-      return res.status(200).json({ orders: ordersWithStatus });
+      return res.status(200).json({ orders: allOrders });
     }
 
-    // Pravi Shopify API poziv sa sačuvanim access token-om
-    console.log("🚀 Koristi pravi Shopify API sa access token-om");
+    // Make real Shopify API call with saved access token
     
     const client = new shopify.clients.Rest({ session });
     
-    // Dobij ordere sa Shopify API
+    // Get orders from Shopify API
     const ordersResponse = await client.get({
       path: "orders",
       query: { 
@@ -237,7 +230,7 @@ app.get("/api/orders", async (req, res) => {
 
     const orders = ordersResponse.body.orders;
 
-    // Za svaki order, dodaj metafield
+    // For each order, add metafield
     const ordersWithMetafields = await Promise.all(
       orders.map(async (order) => {
         try {
@@ -245,32 +238,31 @@ app.get("/api/orders", async (req, res) => {
             path: `orders/${order.id}/metafields`,
           });
           
-          // Pronađi custom metafield
+          // Find custom metafield
           const customMetafield = metafieldsResponse.body.metafields.find(
             mf => mf.namespace === 'custom'
           ) || metafieldsResponse.body.metafields[0];
           
           return {
             ...order,
-            metafield: customMetafield?.value || 'Nema metafield podataka'
+            metafield: customMetafield?.value || 'No metafield data'
           };
         } catch (error) {
           return {
             ...order,
-            metafield: 'Greška pri učitavanju metafield'
+            metafield: 'Error loading metafield'
           };
         }
       })
     );
 
-    // Dobij sync statuse iz baze
-    const syncStatuses = await getAllOrderStatuses();
+    // Create status map from already loaded sync statuses
     const statusMap = {};
     syncStatuses.forEach(status => {
       statusMap[status.order_id] = status;
     });
 
-    // Dodaj sync status na svaki order
+    // Add sync status to each order
     const ordersWithStatus = ordersWithMetafields.map(order => ({
       ...order,
       sync_status: statusMap[order.id]?.status || 'pending'
@@ -283,7 +275,7 @@ app.get("/api/orders", async (req, res) => {
   }
 });
 
-// Test ruta za ordere
+// Test route for orders
 app.get('/test-orders', async (req, res) => {
   try {
     const orders = await getAllOrderStatuses();
@@ -293,7 +285,7 @@ app.get('/test-orders', async (req, res) => {
   }
 });
 
-// Endpoint za manuelno registrovanje webhook-a
+// Endpoint for manual webhook registration
 app.post('/register-webhook', async (req, res) => {
   try {
     const shop = req.query.shop || req.body.shop;
@@ -301,14 +293,19 @@ app.post('/register-webhook', async (req, res) => {
       return res.status(400).json({ error: 'Missing shop parameter' });
     }
 
-    const session = sessionStorage.get(shop);
+    const sessionData = await getSession(shop);
+    const session = sessionData ? {
+      shop: sessionData.shop,
+      accessToken: sessionData.access_token,
+      scope: sessionData.scope
+    } : null;
     if (!session) {
       return res.status(401).json({ error: 'No session found for shop. Please authenticate first.' });
     }
 
     const client = new shopify.clients.Rest({ session });
     
-    // Registruje webhook
+    // Register webhook
     const webhook = await client.post({
       path: "webhooks",
       data: {
@@ -320,15 +317,13 @@ app.post('/register-webhook', async (req, res) => {
       }
     });
 
-    console.log("✅ Webhook registrovan:", webhook.body.webhook);
     res.json({ success: true, webhook: webhook.body.webhook });
   } catch (error) {
-    console.error("❌ Greška pri registrovanju webhook-a:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Endpoint za listovanje postojećih webhook-ova
+// Endpoint for listing existing webhooks
 app.get('/list-webhooks', async (req, res) => {
   try {
     const shop = req.query.shop;
@@ -336,7 +331,12 @@ app.get('/list-webhooks', async (req, res) => {
       return res.status(400).json({ error: 'Missing shop parameter' });
     }
 
-    const session = sessionStorage.get(shop);
+    const sessionData = await getSession(shop);
+    const session = sessionData ? {
+      shop: sessionData.shop,
+      accessToken: sessionData.access_token,
+      scope: sessionData.scope
+    } : null;
     if (!session) {
       return res.status(401).json({ error: 'No session found for shop' });
     }
@@ -346,48 +346,19 @@ app.get('/list-webhooks', async (req, res) => {
     
     res.json({ webhooks: webhooks.body.webhooks });
   } catch (error) {
-    console.error("Greška pri listovanju webhook-ova:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Test endpoint - direktno poziva webhook logiku
-app.post('/test-webhook-direct', async (req, res) => {
-  try {
-    const testOrder = {
-      id: Date.now(),
-      name: `TEST-${Date.now()}`,
-      email: "test@webhook.com",
-      created_at: new Date().toISOString(),
-      total_price: "99.99"
-    };
 
-    console.log("🧪 Test webhook - direktno pozivanje logike");
-    console.log("Test order:", testOrder);
-
-    // Direktno pozovi sendOrderToAPI funkciju
-    const result = await sendOrderToAPI(testOrder);
-    
-    res.json({ 
-      success: true, 
-      testOrder, 
-      apiResult: result,
-      message: result ? "Order uspešno poslat na API" : "Order failed - dodat u retry queue"
-    });
-  } catch (error) {
-    console.error("Test webhook greška:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Dodatni webhook endpoint
+// Additional webhook endpoint
 app.post("/api/webhooks/orders", async (req, res) => {
   try {
     const orderData = req.body;
     const success = await sendOrderToAPI(orderData);
     
     if (!success) {
-      // Pokušaj ponovo nakon 1 minuta
+      // Try again after 1 minute
       setTimeout(() => sendOrderToAPI(orderData), 60000);
     }
     
@@ -397,42 +368,55 @@ app.post("/api/webhooks/orders", async (req, res) => {
   }
 });
 
-// Endpoint za ručno slanje ordera iz frontend-a
+// Endpoint for manual order sending from frontend
 app.post("/api/manual-send-order", async (req, res) => {
   try {
     const orderData = req.body;
     const success = await sendOrderToAPI(orderData);
     
     if (success) {
-      res.status(200).json({ success: true, message: "Order uspešno poslat" });
+      res.status(200).json({ success: true, message: "Order successfully sent" });
     } else {
-      res.status(200).json({ success: false, message: "Neuspešno slanje ordera - dodato u retry queue" });
+      res.status(200).json({ success: false, message: "Failed to send order - added to retry queue" });
     }
   } catch (error) {
-    console.error("Greška pri ručnom slanju:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Endpoint za testiranje fail scenarija
+// Endpoint for testing fail scenarios
 app.post("/api/test-fail-order", async (req, res) => {
   try {
     const orderData = req.body;
-    const success = await sendOrderToAPI(orderData, true); // Koristi fail endpoint
+    const success = await sendOrderToAPI(orderData, true); // Use fail endpoint
     
     res.status(200).json({ 
       success: false, 
-      message: "Test fail scenario - order dodato u retry queue",
+      message: "Test fail scenario - order added to retry queue",
       willRetry: true
     });
   } catch (error) {
-    console.error("Greška pri test fail:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Pokretanje servera
+// Serve static files from frontend directory (AFTER API routes)
+app.use(serveStatic(join(__dirname, 'frontend')));
+
+// Serve frontend application on root
+app.get('/', (req, res) => {
+  try {
+    const htmlPath = join(__dirname, 'frontend', 'index.html');
+    let html = readFileSync(htmlPath, 'utf8');
+    // Replace placeholder with real API key
+    html = html.replace('%VITE_SHOPIFY_API_KEY%', process.env.SHOPIFY_API_KEY || '');
+    res.send(html);
+  } catch (error) {
+    res.status(500).json({ error: 'Frontend loading failed' });
+  }
+});
+
+// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
 });
