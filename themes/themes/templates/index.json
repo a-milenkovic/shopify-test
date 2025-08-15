@@ -15,27 +15,35 @@
         "heading": {
           "type": "heading",
           "settings": {
-            "heading": "Browse our latest products",
+            "heading": "Discover our unique collection",
             "heading_size": "h0"
+          }
+        },
+        "text": {
+          "type": "text",
+          "settings": {
+            "text": "Explore handcrafted items made with love and attention to detail",
+            "text_style": "subtitle"
           }
         },
         "button": {
           "type": "buttons",
           "settings": {
-            "button_label": "Shop all",
+            "button_label": "Shop Collection",
             "button_link": "shopify://collections/all",
-            "button_style_secondary": true
+            "button_style_secondary": false
           }
         }
       },
       "block_order": [
         "heading",
+        "text",
         "button"
       ],
       "settings": {
         "image_height": "large",
-        "content_position": "bottom-center",
-        "color_scheme": "scheme-3"
+        "content_position": "middle-center",
+        "color_scheme": "scheme-1"
       }
     },
     "featured_collection": {
