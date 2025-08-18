@@ -4,6 +4,7 @@
   flex-direction: column;
   z-index: auto;
   isolation: isolate;
+  margin: 0 2rem;
 }
 
 .banner__box {
@@ -83,6 +84,7 @@
 @media screen and (min-width: 750px) {
   .banner {
     flex-direction: row;
+    margin: 0 3rem;
   }
 
   .banner--small:not(.banner--adapt) {
@@ -104,7 +106,6 @@
 
   .banner__content.banner__content--top-center {
     align-items: flex-start;
-    justify-content: center;
   }
 
   .banner__content.banner__content--top-right {
@@ -119,7 +120,6 @@
 
   .banner__content.banner__content--middle-center {
     align-items: center;
-    justify-content: center;
   }
 
   .banner__content.banner__content--middle-right {
@@ -134,7 +134,6 @@
 
   .banner__content.banner__content--bottom-center {
     align-items: flex-end;
-    justify-content: center;
   }
 
   .banner__content.banner__content--bottom-right {
@@ -219,6 +218,10 @@
 }
 
 @media screen and (max-width: 749px) {
+  .banner {
+    margin: 0 1rem;
+  }
+  
   .banner--mobile-bottom .banner__media,
   .banner--stacked:not(.banner--mobile-bottom) .banner__media {
     position: relative;
@@ -272,7 +275,6 @@
   position: relative;
   width: 100%;
   align-items: center;
-  justify-content: center;
   z-index: 2;
 }
 
@@ -283,12 +285,10 @@
 
   .banner__content--top-left {
     align-items: flex-start;
-    justify-content: flex-start;
   }
 
   .banner__content--top-center {
     align-items: flex-start;
-    justify-content: center;
   }
 
   .banner__content--top-right {
@@ -298,12 +298,10 @@
 
   .banner__content--middle-left {
     align-items: center;
-    justify-content: flex-start;
   }
 
   .banner__content--middle-center {
     align-items: center;
-    justify-content: center;
   }
 
   .banner__content--middle-right {
@@ -318,7 +316,6 @@
 
   .banner__content--bottom-center {
     align-items: flex-end;
-    justify-content: center;
   }
 
   .banner__content--bottom-right {
@@ -447,6 +444,11 @@
   gap: 1rem;
   max-width: 45rem;
   word-break: break-word;
+  border: 0;
+}
+
+.banner__buttons .button::after {
+  box-shadow: 0;
 }
 
 @media screen and (max-width: 749px) {
@@ -494,8 +496,9 @@
 /* Custom styling for clean image banner */
 .banner__box {
   max-width: 60rem;
-  margin: 0 auto;
   padding: 4rem 2rem;
+  text-align: left;
+  background: transparent;
 }
 
 .banner__heading {
@@ -518,19 +521,18 @@
 
 .banner__buttons .button {
   min-height: 5rem;
-  padding: 1.5rem 3rem;
+  padding: 2rem 3rem;
   font-size: 1.6rem;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.1rem;
   border-radius: 0.4rem;
   transition: all 0.3s ease;
 }
 
 .banner__buttons .button--primary {
-  background-color: white;
+  border-radius: 35px;
+  background-color: yellow;
   color: #121212;
-  border: 2px solid white;
 }
 
 .banner__buttons .button--primary:hover {
