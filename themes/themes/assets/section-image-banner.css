@@ -447,8 +447,8 @@
   border: 0;
 }
 
-.banner__buttons .button::after {
-  box-shadow: 0;
+.banner__buttons .button::after, .banner__buttons .button::before {
+  box-shadow: none;
 }
 
 @media screen and (max-width: 749px) {
