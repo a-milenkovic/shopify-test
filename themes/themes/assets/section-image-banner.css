@@ -7,6 +7,60 @@
   margin: 0 2rem;
 }
 
+
+/* Copy Field Component Styles */
+.copy-field-container {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 2rem;
+}
+
+.copy-field-label {
+  color: white;
+  font-size: 1.4rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+}
+
+.copy-field-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  border: 2px solid #fff;
+  border-radius: 0.8rem;
+  padding: 1.2rem 1.6rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 160px;
+}
+
+.copy-field-button:hover {
+  border-color: #ffd700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.copy-field-code {
+  font-family: 'Courier New', monospace;
+  font-size: 1.6rem;
+  font-weight: bold;
+  letter-spacing: 0.1rem;
+  color: #fff;
+}
+
+.copy-field-icon {
+  width: 20px;
+  height: 20px;
+  stroke: #fff;
+  transition: opacity 0.2s ease;
+}
+
+.copy-field-button:hover .copy-field-icon {
+  opacity: 1;
+}
+
 .banner__box {
   text-align: center;
 }

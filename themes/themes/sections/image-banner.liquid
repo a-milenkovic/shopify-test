@@ -1,5 +1,5 @@
 {{ 'section-image-banner.css' | asset_url | stylesheet_tag }}
-
+<script src="{{ 'copy-component.js' | asset_url }}" defer></script>
 
 {%- liquid
   assign full_width = '100vw'
@@ -65,6 +65,15 @@
                 </a>
               {%- endif -%}
             </div>
+          {%- when 'copy-field' -%}
+            <copy-component {{ block.shopify_attributes }}>
+              <script type='application/json' data-section-data>
+                {
+                  "copyText": {{ block.settings.coupon_code | json }},
+                  "copyLabel": {{ block.settings.button_text | json }}
+                }
+              </script>
+            </copy-component>
         {%- endcase -%}
       {%- endfor -%}
     </div>
@@ -225,6 +234,7 @@
         {
           "type": "url",
           "id": "button_link",
+          "default": "/collections/all",
           "label": "Button Link"
         },
         {
@@ -234,11 +244,29 @@
           "label": "Use Secondary Button Style"
         }
       ]
+    },
+    {
+      "type": "copy-field",
+      "name": "Copy Field",
+      "settings": [
+        {
+          "type": "text",
+          "id": "coupon_code",
+          "default": "DISCOUNT20",
+          "label": "Coupon Code"
+        },
+        {
+          "type": "text",
+          "id": "button_text",
+          "default": "Copy Code",
+          "label": "Button Text"
+        }
+      ]
     }
   ],
   "presets": [
     {
-      "name": "t:sections.image-banner.presets.name",
+      "name": "t:sections.image-banner.name",
       "blocks": [
         {
           "type": "heading"
@@ -248,6 +276,9 @@
         },
         {
           "type": "buttons"
+        },
+        {
+          "type": "copy-field"
         }
       ]
     }

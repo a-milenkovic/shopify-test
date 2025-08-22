@@ -3,7 +3,7 @@
 client_id = "7ba86ce7385ed8196401acf3817d861e"
 name = "beeit-test"
 handle = "beeit-test"
-application_url = "https://dividend-accessing-nyc-formal.trycloudflare.com"
+application_url = "https://adjustments-conversation-excess-parties.trycloudflare.com"
 embedded = true
 
 [build]
@@ -25,7 +25,7 @@ api_version = "2025-04"
 scopes = "write_products, write_orders, read_orders"
 
 [auth]
-redirect_urls = ["https://dividend-accessing-nyc-formal.trycloudflare.com/auth/callback", "https://dividend-accessing-nyc-formal.trycloudflare.com/auth/shopify/callback", "https://dividend-accessing-nyc-formal.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://adjustments-conversation-excess-parties.trycloudflare.com/auth/callback", "https://adjustments-conversation-excess-parties.trycloudflare.com/auth/shopify/callback", "https://adjustments-conversation-excess-parties.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false
