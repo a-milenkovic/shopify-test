@@ -7,30 +7,6 @@
   margin: 0 2rem;
 }
 
-/* Copy Code Styles */
-.copy-code-container {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.copy-code-display {
-  background: rgba(var(--color-base-background-1), 0.8);
-  border: 1px solid rgba(var(--color-base-text), 0.2);
-  padding: 0.8rem 1.2rem;
-  font-family: monospace;
-  font-size: 1.4rem;
-  font-weight: bold;
-  letter-spacing: 0.1em;
-  border-radius: 0.4rem;
-  min-width: 8rem;
-  text-align: center;
-}
-
-.copy-code-button {
-  white-space: nowrap;
-}
 
 /* Copy Field Component Styles */
 .copy-field-container {

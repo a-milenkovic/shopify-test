@@ -1,5 +1,4 @@
 {{ 'section-image-banner.css' | asset_url | stylesheet_tag }}
-<script src="{{ 'copy-code.js' | asset_url }}" defer></script>
 <script src="{{ 'copy-component.js' | asset_url }}" defer></script>
 
 {%- liquid
@@ -65,17 +64,6 @@
                   {{- block.settings.button_label | escape -}}
                 </a>
               {%- endif -%}
-            </div>
-          {%- when 'copy-code' -%}
-            <div class="copy-code-container" {{ block.shopify_attributes }}>
-              <button 
-                type="button" 
-                class="copy-code-button button button--primary" 
-                onclick="copyToClipboard('{{ block.settings.copy_text }}', this)"
-              >
-                {{ block.settings.copy_label }}
-              </button>
-              <div class="copy-code-display">{{ block.settings.copy_text }}</div>
             </div>
           {%- when 'copy-field' -%}
             <copy-component {{ block.shopify_attributes }}>
@@ -258,24 +246,6 @@
       ]
     },
     {
-      "type": "copy-code",
-      "name": "Code",
-      "settings": [
-        {
-          "type": "text",
-          "id": "copy_text",
-          "default": "SAVE10",
-          "label": "Text to Copy"
-        },
-        {
-          "type": "text",
-          "id": "copy_label",
-          "default": "Code",
-          "label": "Button Label"
-        }
-      ]
-    },
-    {
       "type": "copy-field",
       "name": "Copy Field",
       "settings": [
@@ -306,9 +276,6 @@
         },
         {
           "type": "buttons"
-        },
-        {
-          "type": "copy-code"
         },
         {
           "type": "copy-field"
