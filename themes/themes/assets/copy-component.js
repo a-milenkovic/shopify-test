@@ -10,24 +10,25 @@ if (!customElements.get('copy-component')) {
                     ? JSON.parse(this.dataEl.textContent)
                     : { copyText: '', copyLabel: 'Copy' };
                 this.button = null;
-                this.displayEl = null;
+                this.codeEl = null;
             }
 
             createHTML() {
                 this.innerHTML = `
                     <div class="copy-field-container">
-                        <button 
-                            type="button" 
-                            class="copy-field-button button button--primary"
-                        >
-                            ${this.data.copyLabel || 'Copy Code'}
+                        <div class="copy-field-label">${this.data.copyLabel || 'Code'}</div>
+                        <button type="button" class="copy-field-button">
+                            <span class="copy-field-code">${this.data.copyText || ''}</span>
+                            <svg class="copy-field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+                            </svg>
                         </button>
-                        <div class="copy-field-display">${this.data.copyText || ''}</div>
                     </div>
                 `;
                 
                 this.button = this.querySelector('.copy-field-button');
-                this.displayEl = this.querySelector('.copy-field-display');
+                this.codeEl = this.querySelector('.copy-field-code');
             }
 
             copyToClipboard() {
@@ -68,15 +69,15 @@ if (!customElements.get('copy-component')) {
             }
 
             showFeedback(message) {
-                if (!this.button) return;
+                if (!this.codeEl) return;
                 
-                const originalText = this.button.textContent;
-                this.button.textContent = message;
+                const originalText = this.codeEl.textContent;
+                this.codeEl.textContent = message;
                 this.button.disabled = true;
                 
                 setTimeout(() => {
-                    if (this.button) {
-                        this.button.textContent = originalText;
+                    if (this.codeEl) {
+                        this.codeEl.textContent = originalText;
                         this.button.disabled = false;
                     }
                 }, 2000);
