@@ -11,7 +11,7 @@
 /* Copy Field Component Styles */
 .copy-field-container {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 0.8rem;
   margin-top: 2rem;
 }
@@ -28,8 +28,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: white;
-  border: 2px solid #e0e0e0;
+  background: transparent;
+  border: 2px solid #fff;
   border-radius: 0.8rem;
   padding: 1.2rem 1.6rem;
   cursor: pointer;
@@ -46,14 +46,13 @@
   font-family: 'Courier New', monospace;
   font-size: 1.6rem;
   font-weight: bold;
-  color: #333;
   letter-spacing: 0.1rem;
 }
 
 .copy-field-icon {
   width: 20px;
   height: 20px;
-  opacity: 0.6;
+  stroke: #fff;
   transition: opacity 0.2s ease;
 }
 
