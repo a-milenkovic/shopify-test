@@ -1,5 +1,6 @@
 {{ 'section-image-banner.css' | asset_url | stylesheet_tag }}
 <script src="{{ 'copy-code.js' | asset_url }}" defer></script>
+<script src="{{ 'copy-component.js' | asset_url }}" defer></script>
 
 {%- liquid
   assign full_width = '100vw'
@@ -76,6 +77,15 @@
               </button>
               <div class="copy-code-display">{{ block.settings.copy_text }}</div>
             </div>
+          {%- when 'copy-field' -%}
+            <copy-component {{ block.shopify_attributes }}>
+              <script type='application/json' data-section-data>
+                {
+                  "copyText": {{ block.settings.coupon_code | json }},
+                  "copyLabel": {{ block.settings.button_text | json }}
+                }
+              </script>
+            </copy-component>
         {%- endcase -%}
       {%- endfor -%}
     </div>
@@ -264,6 +274,24 @@
           "label": "Button Label"
         }
       ]
+    },
+    {
+      "type": "copy-field",
+      "name": "Copy Field",
+      "settings": [
+        {
+          "type": "text",
+          "id": "coupon_code",
+          "default": "DISCOUNT20",
+          "label": "Coupon Code"
+        },
+        {
+          "type": "text",
+          "id": "button_text",
+          "default": "Copy Code",
+          "label": "Button Text"
+        }
+      ]
     }
   ],
   "presets": [
@@ -281,6 +309,9 @@
         },
         {
           "type": "copy-code"
+        },
+        {
+          "type": "copy-field"
         }
       ]
     }
